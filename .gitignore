@@ -1,3 +1,4 @@
 .env
 .env.supabase
+.env.n8n
 .claude/settings.local.json

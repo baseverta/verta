@@ -1,8 +1,9 @@
-version: "3.8"
-
 # Stack de produção: n8n + PostgreSQL, exposta em https://n8n.baseverta.com.br
 # TLS/HTTPS é terminado pelo Traefik com certificados automáticos (Let's Encrypt).
 # Todo o tráfego HTTP é redirecionado para HTTPS.
+#
+# NOTA: Traefik fixado em v2.11 (a v3.1 não subiu nesta VPS). Este arquivo espelha
+# exatamente o que está rodando em produção (/root/verta/docker-compose.yml).
 
 networks:
   proxy:
@@ -21,24 +22,23 @@ volumes:
 
 services:
   traefik:
-    image: traefik:v3.1
+    image: traefik:v2.11
     container_name: traefik
     restart: unless-stopped
+    environment:
+      DOCKER_API_VERSION: "1.41"
     command:
       - "--providers.docker=true"
       - "--providers.docker.exposedbydefault=false"
       - "--entrypoints.web.address=:80"
       - "--entrypoints.websecure.address=:443"
-      # Redireciona todo tráfego HTTP para HTTPS
       - "--entrypoints.web.http.redirections.entrypoint.to=websecure"
       - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
       - "--entrypoints.web.http.redirections.entrypoint.permanent=true"
-      # Let's Encrypt (HTTP-01 challenge)
       - "--certificatesresolvers.letsencrypt.acme.httpchallenge=true"
       - "--certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web"
       - "--certificatesresolvers.letsencrypt.acme.email=${SSL_EMAIL}"
       - "--certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json"
-      # Endurecimento: não expor a API/dashboard do Traefik publicamente
       - "--api.dashboard=false"
       - "--log.level=WARN"
     ports:
@@ -49,8 +49,6 @@ services:
     volumes:
       - "/var/run/docker.sock:/var/run/docker.sock:ro"
       - traefik_certs:/letsencrypt
-    security_opt:
-      - no-new-privileges:true
 
   postgres:
     image: postgres:16-alpine
@@ -66,11 +64,9 @@ services:
       - internal
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
-      interval: 10s
+      interval: 5s
       timeout: 5s
       retries: 5
-    security_opt:
-      - no-new-privileges:true
 
   n8n:
     image: docker.n8n.io/n8nio/n8n:latest
@@ -80,30 +76,19 @@ services:
       postgres:
         condition: service_healthy
     environment:
-      # --- Banco de dados ---
-      DB_TYPE: postgresdb
-      DB_POSTGRESDB_HOST: postgres
-      DB_POSTGRESDB_PORT: 5432
-      DB_POSTGRESDB_DATABASE: ${POSTGRES_DB}
-      DB_POSTGRESDB_USER: ${POSTGRES_USER}
-      DB_POSTGRESDB_PASSWORD: ${POSTGRES_PASSWORD}
-
-      # --- Domínio e HTTPS ---
-      N8N_HOST: ${N8N_HOST}
-      N8N_PROTOCOL: https
-      N8N_PORT: 5678
-      N8N_EDITOR_BASE_URL: https://${N8N_HOST}/
-      WEBHOOK_URL: https://${N8N_HOST}/
-      N8N_PROXY_HOPS: 1
-
-      # --- Segurança ---
-      N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY}
-      N8N_SECURE_COOKIE: "true"
-      N8N_BLOCK_ENV_ACCESS_IN_NODE: "true"
-
-      # --- Execução ---
-      GENERIC_TIMEZONE: America/Sao_Paulo
-      NODE_ENV: production
+      - N8N_HOST=${N8N_HOST}
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=https
+      - NODE_ENV=production
+      - WEBHOOK_URL=https://${N8N_HOST}
+      - N8N_EDITOR_BASE_URL=https://${N8N_HOST}
+      - DB_TYPE=postgresdb
+      - DB_POSTGRESDB_HOST=postgres
+      - DB_POSTGRESDB_PORT=5432
+      - DB_POSTGRESDB_DATABASE=${POSTGRES_DB}
+      - DB_POSTGRESDB_USER=${POSTGRES_USER}
+      - DB_POSTGRESDB_PASSWORD=${POSTGRES_PASSWORD}
+      - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY}
     volumes:
       - n8n_data:/home/node/.n8n
     networks:
@@ -111,10 +96,9 @@ services:
       - internal
     labels:
       - "traefik.enable=true"
-      - "traefik.docker.network=proxy"
       - "traefik.http.routers.n8n.rule=Host(`${N8N_HOST}`)"
       - "traefik.http.routers.n8n.entrypoints=websecure"
       - "traefik.http.routers.n8n.tls.certresolver=letsencrypt"
-      - "traefik.http.services.n8n.loadbalancer.server.port=5678"
-    security_opt:
-      - no-new-privileges:true
+      - "traefik.http.routers.n8n.service=n8n-service"
+      - "traefik.http.services.n8n-service.loadbalancer.server.port=5678"
+      - "traefik.docker.network=proxy"
