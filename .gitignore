@@ -1,4 +1,5 @@
 .env
 .env.supabase
 .env.n8n
+.env.typeform
 .claude/settings.local.json

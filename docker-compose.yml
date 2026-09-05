@@ -19,6 +19,12 @@ volumes:
     name: baseverta_n8n_data
   traefik_certs:
     name: baseverta_traefik_certs
+  embeddings_data:
+    name: baseverta_embeddings_data
+  evolution_instances:
+    name: baseverta_evolution_instances
+  redis_data:
+    name: baseverta_redis_data
 
 services:
   traefik:
@@ -102,3 +108,55 @@ services:
       - "traefik.http.routers.n8n.service=n8n-service"
       - "traefik.http.services.n8n-service.loadbalancer.server.port=5678"
       - "traefik.docker.network=proxy"
+
+  embeddings:
+    build: ./embeddings-server
+    container_name: embeddings
+    restart: unless-stopped
+    environment:
+      - HF_HUB_OFFLINE=1
+      - TRANSFORMERS_OFFLINE=1
+    volumes:
+      - embeddings_data:/root/.cache
+    networks:
+      - internal
+
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+    networks:
+      - internal
+
+  evolution:
+    image: evoapicloud/evolution-api:v2.3.7
+    container_name: evolution
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8082:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      - AUTHENTICATION_API_KEY=${EVOLUTION_API_KEY}
+      - SERVER_URL=http://evolution:8080
+      - DATABASE_ENABLED=true
+      - DATABASE_PROVIDER=postgresql
+      - DATABASE_CONNECTION_URI=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/evolution
+      - DATABASE_SAVE_DATA_INSTANCE=true
+      - DATABASE_SAVE_DATA_NEW_MESSAGE=true
+      - DATABASE_SAVE_MESSAGE_UPDATE=true
+      - DATABASE_SAVE_DATA_CONTACTS=false
+      - DATABASE_SAVE_DATA_CHATS=false
+      - DATABASE_SAVE_DATA_HISTORIC=false
+      - DATABASE_SAVE_DATA_LABELS=false
+      - CACHE_REDIS_ENABLED=false
+      - CACHE_LOCAL_ENABLED=true
+      - CONFIG_SESSION_PHONE_VERSION=2.3000.1033773198
+    volumes:
+      - evolution_instances:/evolution/instances
+    networks:
+      - proxy
+      - internal
