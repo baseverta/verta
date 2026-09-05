@@ -76,3 +76,37 @@ Quando uma automação nova passar a capturar um dado novo do lead, atualizar
 **todos** os pontos que espelham ou resumem esse dado: mapeamento para o Pipedrive
 nos três workflows de entrada (WhatsApp, Typeform, Calendly), o `RESUMO.md` da pasta
 do cliente, e as etiquetas do Deal.
+
+## Confiança na entrada: todo webhook público é assinado
+
+Os webhooks do n8n são URLs públicas. Sem verificação, qualquer pessoa que descubra
+o endereço consegue **injetar um evento falso** — criar lead, disparar e-mail para
+cliente, mexer no Pipedrive. Por isso todo webhook de terceiro valida assinatura
+antes de qualquer efeito colateral:
+
+| Origem | Como valida | Observação |
+|---|---|---|
+| Fathom | Standard Webhooks (`webhook-id`, `webhook-timestamp`, `webhook-signature`), HMAC-SHA256 sobre `id.timestamp.corpo`, janela de 5 min | segredo em base64 após `whsec_` |
+| Typeform (×3) | `Typeform-Signature: sha256=<base64>`, HMAC-SHA256 sobre o corpo bruto | um segredo por formulário |
+| Pipedrive | webhook próprio do CRM, autenticado na origem | — |
+| Calendly | assinatura disponível, ainda **não** aplicada | próximo da fila |
+
+O padrão em todos: `Webhook` → `Validar Assinatura` (Code) → `Assinatura OK?` (IF)
+→ fluxo normal; o galho de recusa não vai a lugar nenhum, e o motivo fica no log
+da execução. Três detalhes que não são óbvios:
+
+- Validar assinatura exige o **corpo bruto** (`options.rawBody: true` no webhook).
+  Com isso o corpo deixa de chegar em `$json.body` e passa a vir como binário —
+  os nodes seguintes precisam ler o corpo já parseado pelo node de validação,
+  nunca mais pelo node do webhook.
+- O segredo mora **hardcoded no Code node**: o sandbox do Code node do n8n não lê
+  Data Table nem credencial. É a mesma escolha feita para o Fathom.
+- Ao ligar (ou girar) um segredo, gravar primeiro **na origem** e só depois subir a
+  validação no n8n. A ordem inversa rejeita envio legítimo na janela entre os dois passos.
+
+## Dados internos não são clientes
+
+`leads.is_internal = true` marca registro da própria Verta (teste, "Cliente Zero").
+Esses registros ficam fora da auditoria diária: não precisam de Organização no
+Pipedrive nem de pasta no Drive, e sem essa marca geram alerta todo dia para sempre —
+o que treina o time a ignorar o e-mail de auditoria, que é o pior resultado possível.
