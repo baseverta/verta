@@ -2,4 +2,7 @@
 .env.supabase
 .env.n8n
 .env.typeform
-.claude/settings.local.json
+
+# Estado local do cliente Claude Code. As skills aqui dentro sao copia identica
+# de .agents/skills (essa sim versionada) - versionar as duas duplicaria 40 arquivos.
+.claude/

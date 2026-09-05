@@ -110,3 +110,12 @@ da execução. Três detalhes que não são óbvios:
 Esses registros ficam fora da auditoria diária: não precisam de Organização no
 Pipedrive nem de pasta no Drive, e sem essa marca geram alerta todo dia para sempre —
 o que treina o time a ignorar o e-mail de auditoria, que é o pior resultado possível.
+
+## Onde está o "como fazer"
+
+Este documento é **decisão de arquitetura**: o que vale e por quê. O passo a passo
+operacional, os erros já cometidos e as padronizações estão em [`protocolos/`](protocolos/) —
+comece pelo [README](protocolos/README.md).
+
+Regra de divisão: se a pergunta é *"por que é assim?"*, está aqui. Se é
+*"como eu faço isso sem quebrar nada?"*, está lá.
