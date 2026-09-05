@@ -1,4 +1,12 @@
-# 05 — Google Drive
+# 05 — Armazenamento de arquivos
+
+> **Camada**, não ferramenta. Hoje é o **Google Drive**, e os exemplos são dele.
+> A regra central (referenciar por ID, nunca por caminho) vale em qualquer
+> armazenamento que tenha identificador estável — Drive, SharePoint, Dropbox, S3.
+>
+> As pastas de cliente ficam no Drive **da Verta**, não no do cliente. Isso é
+> deliberado: o histórico é nosso instrumento de trabalho enquanto o contrato
+> existe, e na saída ele é entregue por export (ver protocolo 08).
 
 ## A regra que protege de reorganização de pastas
 
@@ -61,8 +69,8 @@ cliente na vida inteira dele.
 Dentro da pasta do cliente: `Transcrições`, `Propostas`, `Contratos`,
 `Arquivos Recebidos` e o `RESUMO.md`.
 
-A pasta é nomeada com o nome da **Organização** no Pipedrive, para os dois sistemas
-serem legíveis lado a lado.
+A pasta é nomeada com o nome da **Empresa** no CRM, para os dois sistemas serem
+legíveis lado a lado.
 
 ## Mover pasta: o node não funciona
 
@@ -104,9 +112,9 @@ verificação que não faz sentido para uso próprio.
 
 ## Erros que já cometemos
 
-**Pipedrive criando a própria pasta.** A integração nativa do Pipedrive com Drive
-cria uma pasta paralela, com estrutura dele, fora da nossa. Fica desligada: quem
-manda na estrutura de pastas somos nós.
+**CRM criando a própria pasta.** A integração nativa do Pipedrive com Drive cria uma
+pasta paralela, com estrutura dele, fora da nossa. Fica desligada: quem manda na
+estrutura de pastas somos nós.
 
 **Node de Drive derrubando execução inteira.** Cliente sem pasta fez o node de mover
 receber `undefined` e matou a execução — junto com o disparo de formulário que vinha

@@ -4,6 +4,12 @@ O passo a passo de quando um negócio é ganho até o cliente estar operando. A 
 parte é automática; este documento existe para você saber **o que deve acontecer
 sozinho**, **o que exige gente** e **como perceber que algo não aconteceu**.
 
+> **Antes deste documento vêm outros dois.** O protocolo 08 define em qual modelo o
+> cliente será implantado (VPS dedicada ou compartilhada) e provisiona a
+> infraestrutura; o protocolo 09 fecha quais módulos ele tem. Os passos abaixo
+> assumem CRM, arquivos e formulários ligados — se algum não estiver contratado,
+> pule os itens correspondentes em vez de tratá-los como pendência.
+
 ## Princípio que governa tudo aqui
 
 > Nada no processo pode depender de o cliente responder alguma coisa.
@@ -12,9 +18,9 @@ O cliente pode sumir por duas semanas depois de assinar. O setup precisa avança
 até o limite do que não depende dele, e o que depende vira cobrança automática +
 handoff humano. Formulário é **coleta**, nunca **pré-requisito**.
 
-## O gatilho: marcar o negócio como ganho no Pipedrive
+## O gatilho: marcar o negócio como ganho no CRM
 
-Todo o setup nasce de um evento só — o Deal virar `won`. Não crie nada na mão antes
+Todo o setup nasce de um evento só — o negócio virar `won`. Não crie nada na mão antes
 disso, porque a automação vai criar de novo e você fica com registro duplicado.
 
 Ao marcar como ganho, dispara em paralelo:
@@ -55,8 +61,8 @@ diferente do cliente da reunião, o link está errado — pare. É a única barr
 contra gravar o kickoff de um cliente no cadastro de outro.
 
 O mesmo link está em três lugares para você nunca precisar caçar e-mail:
-o e-mail que o time recebeu, o campo **Link do Kickoff** no card do Pipedrive, e
-uma atividade de reunião no próprio card.
+o e-mail que o time recebeu, o campo **Link do Kickoff** no card do CRM, e uma
+atividade de reunião no próprio card.
 
 ### A cobrança de formulário
 
@@ -93,7 +99,7 @@ telefone).
 ## Checklist de conferência (5 minutos, depois de fechar um cliente)
 
 - [ ] Pasta do cliente está em `02 - Cliente`, com `Contratos` e `Arquivos Recebidos`
-- [ ] Card do Pipedrive tem Organização (não só Pessoa) e o campo Pasta no Drive preenchido
+- [ ] Card do CRM tem Empresa (não só Pessoa) e o campo Pasta no Drive preenchido
 - [ ] Campo **Link do Kickoff** preenchido no card
 - [ ] Atividade de reunião de kickoff criada
 - [ ] `RESUMO.md` na pasta do cliente reflete o que sabemos dele
