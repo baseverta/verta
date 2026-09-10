@@ -32,14 +32,6 @@
 - *Problema:* o sandbox do Code Node não lê credenciais nativas do n8n, o que levava a fixar o segredo de validação de webhook direto no código. Esse arquivo vai para o repositório do cliente, e um push distraído expõe a credencial.
 - *Decisão:* o segredo é injetado por variável de ambiente e lido via `$env`, com `N8N_BLOCK_ENV_ACCESS_IN_NODE=false` no container. `.gitignore` obrigatório cobrindo `.env`, `*.key`, `*.pem` e `acme.json`. Hardcode só como exceção temporária, registrada aqui e com prazo de substituição.
 
-**Imagem do n8n fixada em 2.37.7** *(09/09/2026)*
-- *Problema:* o `docker-compose.yml` em produção usava `docker.n8n.io/n8nio/n8n:latest`, contrariando a regra de `ARQUITETURA.md` seção 3. A violação passou despercebida por rodar sem restart: qualquer `docker compose up -d` — inclusive um recreate de rotina para adicionar variável de ambiente — puxaria a versão mais recente e poderia derrubar a produção sem aviso.
-- *Decisão:* imagem fixada em `2.37.7`, a versão que já estava rodando. Atualização passa a exigir janela agendada e troca explícita da tag. Backup do compose e do `.env` gravado antes da alteração (`docker-compose.yml.bak-20260909-231631`).
-
-**Conector MCP do Supabase apontado para outro cliente** *(09/09/2026)*
-- *Problema:* durante a construção da cadência, a auditoria de conexões revelou que o conector MCP do Supabase estava autenticado numa conta cuja única organização era `Manekin.ai` — outro projeto —, enquanto o `.mcp.json` apontava para o `project_ref` da Verta. O conector tinha permissão de escrita e DDL sobre o banco de outro cliente dentro da sessão de trabalho da Verta. Nenhum dado da Manekin foi lido ou escrito, mas a barreira não existia. A regra de ouro do isolamento por Project protege os dados; não protege a camada de ferramenta.
-- *Decisão:* reafirmada a regra de `ARQUITETURA.md` seção 7.1 — acesso ao Supabase por credencial em `.env` do projeto, **nunca por conector MCP global**. O acesso passou a ser feito pelo `.env.supabase` e pela connection string via pooler. O conector global deve ser desconectado.
-
 ---
 
 ## 2. Lógica e Motor (n8n)
@@ -63,14 +55,6 @@
 **Calendly como padrão de agendamento** *(nova)*
 - *Problema:* Cal.com constava no wireframe e na estratégia comercial, Calendly na base de incidentes, e um workflow chamado `CRON - CalCom -` na operação. Três referências para a mesma função.
 - *Decisão:* Calendly é o padrão, por já ter o contorno técnico testado e a conta configurada. Cal.com sai de todos os documentos; o workflow passa a se chamar `CRON - Calendly - LembreteDiagnostico`.
-
-**Webhook do Pipedrive sem assinatura: Basic Auth como exceção** *(09/09/2026)*
-- *Problema:* `ARQUITETURA.md` seção 7.8 manda ativar `rawBody: true` e validar a assinatura de todo webhook. O Pipedrive **não assina webhook** — não há HMAC nem header de assinatura em nenhuma versão da API. A documentação oferece exclusivamente HTTP Basic Auth, com usuário e senha definidos no momento em que a subscrição é criada. A regra da seção 7.8 nasceu dos webhooks de Typeform e Cal.com, que assinam de fato, e não tem como ser cumprida aqui.
-- *Decisão:* para webhooks do Pipedrive, a autenticação é Basic Auth validado em Code Node contra `$env.PIPEDRIVE_WEBHOOK_USER` e `$env.PIPEDRIVE_WEBHOOK_PASS`, com comparação de tempo constante. `rawBody` fica **desativado** — sem assinatura para ler, ele só transformaria o corpo em binário e complicaria o parse sem ganho de segurança. A regra da seção 7.8 permanece válida para todo provedor que assine; este é o único desvio autorizado.
-
-**Filtro de transição de etapa exige checar o campo alterado** *(09/09/2026)*
-- *Problema:* o webhook v2 do Pipedrive entrega `meta`, `data` e `previous`, e `previous` traz **somente os campos que mudaram**. A condição intuitiva — `data.stage_id == 16 && previous.stage_id != 16` — dispara indevidamente quando o negócio já estava na etapa 16 e alguém editou outro campo qualquer: `previous.stage_id` vem ausente, e `undefined != 16` avalia como verdadeiro. O resultado seria recriar a cadência inteira a cada edição.
-- *Decisão:* todo filtro de transição de estado verifica antes se o campo consta na lista de alterados (`Object.keys(previous).includes('stage_id')`) e só então compara os valores. A guarda de idempotência continua obrigatória e independente — ela cobre a entrega duplicada do webhook, que é um problema distinto.
 
 ---
 

@@ -24,9 +24,7 @@ create table public.organizations (
   drive_folder_id  text,
   drive_file_ids   jsonb not null default '{}'::jsonb,
   merged_into_id   uuid references public.organizations(id) on delete restrict,
-  -- 12 alfanuméricos + 2 dígitos verificadores: aceita o CNPJ numérico
-  -- antigo e o alfanumérico que passou a valer em 2026.
-  cnpj             text check (cnpj is null or cnpj ~ '^[A-Z0-9]{12}[0-9]{2}$'),
+  cnpj             text,
   is_internal      boolean not null default false,
   deleted_at       timestamptz,
   created_at       timestamptz not null default now(),
@@ -73,13 +71,7 @@ comment on column public.contacts.telefone_e164 is
   'Telefone normalizado em E.164. A constraint recusa formato livre na entrada, em vez de confiar na normalização do workflow.';
 
 create index contacts_organization_ix on public.contacts (organization_id) where deleted_at is null;
--- Único, não comum: duas mensagens do mesmo número novo chegando quase
--- juntas — "oi" e depois "queria saber o preço" — passam as duas pela
--- leitura do find_or_create antes de qualquer inserção e criam dois
--- contatos. Workflow bem escrito só reduz a janela; constraint garante.
--- A ingestão deve usar ON CONFLICT DO NOTHING seguido de releitura.
-create unique index contacts_telefone_uk on public.contacts (telefone_e164)
-  where telefone_e164 is not null and deleted_at is null;
+create index contacts_telefone_ix     on public.contacts (telefone_e164) where telefone_e164 is not null;
 create index contacts_lifecycle_ix    on public.contacts (lifecycle_stage) where deleted_at is null;
 
 create table public.deals (
@@ -94,31 +86,6 @@ create table public.deals (
   status              text not null default 'aberto'
                         check (status in ('aberto','ganho','perdido')),
   motivo_perda        text,
-
-  -- stage era texto livre enquanto pipeline tinha CHECK. CHECK e não FK
-  -- para crm_ref: deals é tabela de negócio e não deve depender do
-  -- dicionário de um CRM específico — mesmo princípio de external_refs.
-  constraint deals_stage_ck check (
-    (pipeline = 'prospeccao' and stage in
-      ('lista_prospeccao','em_cadencia','qualificado','diagnostico_agendado')) or
-    (pipeline = 'fechamento' and stage in
-      ('diagnostico_proposta','negociacao_sla','onboarding'))
-  ),
-
-  -- Os seis motivos canônicos de COMERCIAL.md. Sem isso, 'silencio' e
-  -- 'Silêncio' viram duas categorias no relatório de fim de mês.
-  constraint deals_motivo_perda_ck check (
-    motivo_perda is null or motivo_perda in (
-      'ir_inferior_a_2','sem_autoridade','no_show_permanente',
-      'perdido_por_preco','silencio','processo_caotico'
-    )
-  ),
-
-  -- Motivo só em negócio perdido; e perdido sem motivo esvazia a auditoria.
-  constraint deals_perda_coerente_ck check (
-    (status = 'perdido' and motivo_perda is not null) or
-    (status <> 'perdido' and motivo_perda is null)
-  ),
   is_internal         boolean not null default false,
   deleted_at          timestamptz,
   created_at          timestamptz not null default now(),
@@ -181,7 +148,13 @@ create unique index external_refs_deal_uk on public.external_refs (provider, dea
 -- TOQUE DE ATUALIZAÇÃO
 -- ---------------------------------------------------------------------
 
--- A função vive em 000; o gatilho do crm_ref vive em 001, junto da tabela.
+create or replace function public.tocar_updated_at()
+returns trigger language plpgsql as $$
+begin
+  new.updated_at := now();
+  return new;
+end $$;
+
 create trigger organizations_touch  before update on public.organizations
   for each row execute function public.tocar_updated_at();
 create trigger contacts_touch       before update on public.contacts
@@ -190,30 +163,8 @@ create trigger deals_touch          before update on public.deals
   for each row execute function public.tocar_updated_at();
 create trigger external_refs_touch  before update on public.external_refs
   for each row execute function public.tocar_updated_at();
-
--- Cadeia de merge (A -> B -> C) quebraria a resolução por merged_into_id,
--- que é de um salto: devolveria uma organização também já consolidada.
-create or replace function public.impedir_cadeia_de_merge()
-returns trigger language plpgsql as $$
-declare alvo_ja_consolidado uuid;
-begin
-  if new.merged_into_id is null then return new; end if;
-  select merged_into_id into alvo_ja_consolidado
-    from public.organizations where id = new.merged_into_id;
-  if alvo_ja_consolidado is not null then
-    raise exception 'Cadeia de merge: % aponta para %, que ja foi consolidada em %',
-      new.id, new.merged_into_id, alvo_ja_consolidado;
-  end if;
-  if exists (select 1 from public.organizations
-              where merged_into_id = new.id and id <> new.id) then
-    raise exception 'Cadeia de merge: % ja e destino de outra consolidacao', new.id;
-  end if;
-  return new;
-end $$;
-
-create trigger organizations_sem_cadeia_de_merge
-  before insert or update of merged_into_id on public.organizations
-  for each row execute function public.impedir_cadeia_de_merge();
+create trigger crm_ref_touch        before update on public.crm_ref
+  for each row execute function public.tocar_updated_at();
 
 -- ---------------------------------------------------------------------
 -- RLS — defesa em profundidade, não controle primário
@@ -227,12 +178,9 @@ alter table public.organizations  enable row level security;
 alter table public.contacts       enable row level security;
 alter table public.deals          enable row level security;
 alter table public.external_refs  enable row level security;
--- crm_ref liga o próprio RLS em 001, junto da tabela.
+alter table public.crm_ref        enable row level security;
 
--- REVOKE antes de GRANT: os defaults do Supabase concedem arwdDxtm a anon
--- e authenticated em toda tabela do schema public, e um grant não retira.
-revoke all on public.organizations, public.contacts, public.deals, public.external_refs
-  from anon, authenticated;
+revoke all on public.organizations, public.contacts, public.deals, public.external_refs from anon;
 
 grant select, insert, update on
   public.organizations, public.contacts, public.deals, public.external_refs

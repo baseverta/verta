@@ -145,8 +145,8 @@ select 'pipedrive', 'opcao', b.chave, b.valor_id, b.descricao, p.id
 do $$
 declare n int;
 begin
-  -- Prefixo desconhecido não chega até aqui: o CASE devolve NULL e o
-  -- INSERT estoura antes, por NOT NULL. A guarda real é a contagem.
+  select count(*) into n from public.crm_ref where tipo is null;
+  if n > 0 then raise exception 'ABORTADO: % linha(s) sem tipo', n; end if;
   select count(*) into n from public.crm_ref;
   if n <> 45 then raise exception 'ABORTADO: esperado 45 linhas, veio %', n; end if;
   select count(*) into n from public.crm_ref where tipo = 'opcao';
@@ -163,10 +163,7 @@ end $$;
 -- falha que esta migração existe para evitar. Nenhuma linha tem os dois
 -- preenchidos (campo tem external_key; tipo_atividade tem valor_texto),
 -- então não há ambiguidade.
--- security_invoker é obrigatório: sem ele a view roda com as permissões
--- do dono e devolve tudo, furando o RLS da tabela. Medido antes da
--- correção: authenticated lia 0 linhas direto e 49 pela view.
-create view public.pipedrive_config with (security_invoker = true) as
+create view public.pipedrive_config as
 select chave,
        valor_id,
        coalesce(valor_texto, external_key) as valor_texto
@@ -176,21 +173,10 @@ select chave,
 comment on view public.pipedrive_config is
   'Compatibilidade transitória. Fonte real: crm_ref. Preserva o contrato de leitura dos três workflows de cadência. Remover na Fase 3.';
 
--- Gatilho e RLS junto da tabela que protegem, não num arquivo adiante.
-create trigger crm_ref_touch before update on public.crm_ref
-  for each row execute function public.tocar_updated_at();
-
-alter table public.crm_ref enable row level security;
-
--- REVOKE antes de GRANT. Os defaults do Supabase já concedem arwdDxtm —
--- tudo, inclusive DELETE — a anon e authenticated em toda tabela do
--- schema public; um `grant select` não retira nada. E o rename preserva
--- a ACL, então pipedrive_config_bkp herda o mesmo problema.
-revoke all on public.crm_ref              from anon, authenticated;
-revoke all on public.pipedrive_config     from anon, authenticated;
-revoke all on public.pipedrive_config_bkp from anon, authenticated;
-
-grant select on public.crm_ref, public.pipedrive_config to service_role;
+-- anon deliberadamente fora: nada lê o dicionário com a chave publishable,
+-- e reverter é um grant.
+grant select on public.pipedrive_config to authenticated, service_role;
+grant select on public.crm_ref          to authenticated, service_role;
 
 commit;
 
