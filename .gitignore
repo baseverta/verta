@@ -1,9 +1,13 @@
+# Segredos. Padrão, não enumeração: listar arquivo a arquivo já falhou uma
+# vez — .env.tally ficou de fora e só não vazou porque a varredura pegou.
+# ARQUITETURA.md seção 6 exige .env, *.key, *.pem e acme.json.
 .env
-.env.supabase
-.env.n8n
-.env.typeform
+.env.*
+!.env.example
+*.key
+*.pem
+acme.json
 
 # Estado local do cliente Claude Code. As skills aqui dentro sao copia identica
 # de .agents/skills (essa sim versionada) - versionar as duas duplicaria 40 arquivos.
 .claude/
-.env.calcom
