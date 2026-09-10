@@ -11,3 +11,18 @@ acme.json
 # Estado local do cliente Claude Code. As skills aqui dentro sao copia identica
 # de .agents/skills (essa sim versionada) - versionar as duas duplicaria 40 arquivos.
 .claude/
+
+# Arquivos de credencial em texto puro. Padrão, de novo por lição: a
+# enumeração já falhou com .env.tally, e "todos-os-acessos-estao-aqui.txt"
+# não casava com nenhuma regra anterior — estava a um `git add -A` de ir
+# para o GitHub. Segredo no repositório é acidente de nome de arquivo.
+*acesso*
+*credencia*
+*credential*
+*senha*
+*secret*
+*password*
+*.token
+*.p12
+*.pfx
+id_rsa*
