@@ -16,6 +16,7 @@ create table if not exists public.calcom_routing (
   contact_email   text,
   contact_phone   text,
   contact_name    text,
+  org_name        text,
   icp_approved    boolean,
   calcom_link     text,
   booking_id      text,
