@@ -42,8 +42,8 @@ create trigger calcom_routing_touch
 
 alter table public.calcom_routing enable row level security;
 
-revoke all on public.calcom_routing from anon;
+revoke all on public.calcom_routing from anon, authenticated;
 
-grant select, insert, update, delete on public.calcom_routing to service_role;
+grant all on public.calcom_routing to service_role;
 
 commit;
