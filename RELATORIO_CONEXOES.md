@@ -204,3 +204,34 @@ A infraestrutura da Verta está **operacional** na VPS. A maioria dos serviços 
 - **❌ Não testados:** Discord, Google OAuth2, Redis
 
 Os problemas restantes são principalmente de **autenticação/validação**, não de indisponibilidade da infraestrutura. As credenciais fornecidas se mostraram funcionais para a maioria dos serviços externos, mas algumas precisam ser revisadas (n8n e Evolution API).
+
+---
+
+## Atualização - Sincronização CRM Pipedrive ↔ Supabase (11/09/2026)
+
+### Componentes criados/ativados
+
+- **Migrações:** `004-sincronizacao-crm.sql` e `005-upsert-deal-crm.sql` aplicadas na produção.
+- **Workflows inbound (Pipedrive → Supabase):**
+  - `WEB - Pipedrive - SincronizarOrganizacao` (`iP7PKpf2HqqL8GiO`)
+  - `WEB - Pipedrive - SincronizarContato` (`AJiFjzuwjyvTXH8z`)
+  - `WEB - Pipedrive - SincronizarNegocio` (`akxIAfp2CSDKBdZr`)
+- **Workflow outbound (Supabase → Pipedrive):** `CRON - CRM - SincronizarOutbox` (`NTtsVyWz4muf7kAL`)
+- **Webhooks Pipedrive registrados:**
+  - organização `1905049`
+  - pessoa `1905050`
+  - negócio `1905051`
+
+### Fluxo validado ponta a ponta
+
+1. Criou-se organização, contato e negócio no Pipedrive com nomes isolados (`Verta Test Sync - ...`).
+2. Webhooks chegaram ao n8n e as entidades foram inseridas no Supabase.
+3. `external_refs` foi populado corretamente para os três tipos.
+4. Alterou-se o nome da organização no Supabase via API; o evento entrou na `crm_sync_outbox`.
+5. O worker outbound processou o item e atualizou o nome no Pipedrive.
+6. O webhook de alteração do Pipedrive voltou ao n8n, mas **não gerou novo item na outbox** (prevenção de loop ativa).
+7. Dados de teste foram removidos dos dois lados.
+
+### Decisão importante
+
+Os nós `HTTP Request` iniciais apresentaram dificuldade ao interpretar a resposta escalar (`uuid`) retornada pelas RPCs do Supabase. Foi substituída a chamada final de cada workflow inbound por um nó `CODE` que usa `this.helpers.httpRequest`, garantindo controle total sobre o payload e a resposta. Os nós `GET` para o Pipedrive permanecem como `HTTP Request` e funcionam normalmente.

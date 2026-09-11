@@ -52,9 +52,9 @@
 - *Problema:* o webhook do Calendly retorna o campo da sala do Meet com status `processing` no momento do agendamento, impedindo o n8n de salvar o ID da reunião para monitoramento.
 - *Decisão:* nó de Wait de 15 segundos, seguido de consulta direta à API do Google Calendar para extrair o `conferenceId` real.
 
-**Calendly como padrão de agendamento** *(nova)*
-- *Problema:* Cal.com constava no wireframe e na estratégia comercial, Calendly na base de incidentes, e um workflow chamado `CRON - CalCom -` na operação. Três referências para a mesma função.
-- *Decisão:* Calendly é o padrão, por já ter o contorno técnico testado e a conta configurada. Cal.com sai de todos os documentos; o workflow passa a se chamar `CRON - Calendly - LembreteDiagnostico`.
+**Cal.com como padrão de agendamento** *(revisado em 2026-09-11)*
+- *Problema:* a decisão anterior fixou Calendly, mas a conta e os webhooks ativos do Cal.com já estão em produção (`WEB - Cal.com - Receber Eventos`, webhook `wh-verta-calcom`). Usar duas ferramentas para a mesma função cria duplicidade e quebra a rastreabilidade.
+- *Decisão:* Cal.com é o padrão de agendamento. O Calendly é descontinuado da stack ativa e os documentos são ajustados para refletir Cal.com. O workflow de lembretes passa a se chamar `CRON - Cal.com - LembreteDiagnostico` quando criado.
 
 ---
 
