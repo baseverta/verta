@@ -1,11 +1,51 @@
 {
   "mcpServers": {
     "n8n-mcp": {
-      "type": "http",
-      "url": "https://n8n.baseverta.com.br/mcp-server/http",
-      "headers": {
-        "Authorization": "Bearer ${N8N_MCP_TOKEN}"
-      }
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "dotenv-cli", "-e",
+        "C:/Users/micha/.secrets/verta/.env.n8n", "--",
+        "npx", "-y", "mcp-remote@latest",
+        "https://n8n.baseverta.com.br/mcp-server/http",
+        "--header", "Authorization:${N8N_AUTH}"]
+    },
+    "supabase": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "dotenv-cli", "-e",
+        "C:/Users/micha/.secrets/verta/.env.supabase", "--",
+        "npx", "-y", "@supabase/mcp-server-supabase@latest",
+        "--project-ref=vnqsyngphmkgvribtmfa"]
+    },
+    "resend": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "dotenv-cli", "-e",
+        "C:/Users/micha/.secrets/verta/.env.resend", "--",
+        "npx", "-y", "resend-mcp"]
+    },
+    "cal": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "dotenv-cli", "-e",
+        "C:/Users/micha/.secrets/verta/.env.cal", "--",
+        "npx", "@calcom/cal-mcp@latest"]
+    },
+    "tally": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "dotenv-cli", "-e",
+        "C:/Users/micha/.secrets/verta/.env.tally", "--",
+        "npx", "-y", "mcp-remote@latest",
+        "https://api.tally.so/mcp",
+        "--header", "Authorization:${TALLY_AUTH}"]
+    },
+    "pipedrive": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "dotenv-cli", "-e",
+        "C:/Users/micha/.secrets/verta/.env.pipedrive", "--",
+        "npx", "-y", "@ckalima/pipedrive-mcp-server"]
     }
   }
 }
