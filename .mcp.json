@@ -2,50 +2,56 @@
   "mcpServers": {
     "n8n-mcp": {
       "type": "stdio",
-      "command": "npx",
-      "args": ["-y", "dotenv-cli", "-e",
-        "C:/Users/micha/.secrets/verta/.env.n8n", "--",
+      "command": "doppler",
+      "args": [
+        "run", "-p", "verta", "-c", "prd", "--",
         "npx", "-y", "mcp-remote@latest",
         "https://n8n.baseverta.com.br/mcp-server/http",
-        "--header", "Authorization:${N8N_AUTH}"]
+        "--header", "Authorization:${N8N_AUTH}"
+      ]
     },
     "supabase": {
       "type": "stdio",
-      "command": "npx",
-      "args": ["-y", "dotenv-cli", "-e",
-        "C:/Users/micha/.secrets/verta/.env.supabase", "--",
+      "command": "doppler",
+      "args": [
+        "run", "-p", "verta", "-c", "prd", "--",
         "npx", "-y", "@supabase/mcp-server-supabase@latest",
-        "--project-ref=vnqsyngphmkgvribtmfa"]
+        "--project-ref=vnqsyngphmkgvribtmfa"
+      ]
     },
     "resend": {
       "type": "stdio",
-      "command": "npx",
-      "args": ["-y", "dotenv-cli", "-e",
-        "C:/Users/micha/.secrets/verta/.env.resend", "--",
-        "npx", "-y", "resend-mcp"]
+      "command": "doppler",
+      "args": [
+        "run", "-p", "verta", "-c", "prd", "--",
+        "npx", "-y", "resend-mcp"
+      ]
     },
     "cal": {
       "type": "stdio",
-      "command": "npx",
-      "args": ["-y", "dotenv-cli", "-e",
-        "C:/Users/micha/.secrets/verta/.env.cal", "--",
-        "npx", "@calcom/cal-mcp@latest"]
+      "command": "doppler",
+      "args": [
+        "run", "-p", "verta", "-c", "prd", "--",
+        "npx", "@calcom/cal-mcp@latest"
+      ]
     },
     "tally": {
       "type": "stdio",
-      "command": "npx",
-      "args": ["-y", "dotenv-cli", "-e",
-        "C:/Users/micha/.secrets/verta/.env.tally", "--",
+      "command": "doppler",
+      "args": [
+        "run", "-p", "verta", "-c", "prd", "--",
         "npx", "-y", "mcp-remote@latest",
         "https://api.tally.so/mcp",
-        "--header", "Authorization:${TALLY_AUTH}"]
+        "--header", "Authorization:${TALLY_AUTH}"
+      ]
     },
     "pipedrive": {
       "type": "stdio",
-      "command": "npx",
-      "args": ["-y", "dotenv-cli", "-e",
-        "C:/Users/micha/.secrets/verta/.env.pipedrive", "--",
-        "npx", "-y", "@ckalima/pipedrive-mcp-server"]
+      "command": "doppler",
+      "args": [
+        "run", "-p", "verta", "-c", "prd", "--",
+        "npx", "-y", "@ckalima/pipedrive-mcp-server"
+      ]
     }
   }
 }
